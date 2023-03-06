@@ -1,10 +1,7 @@
-"""my_dataset dataset."""
-
 import tensorflow_datasets as tfds
 import tensorflow as tf
 from typing import List
 import numpy as np
-import argparse
 import json
 import os
 
@@ -37,6 +34,21 @@ class Builder(tfds.core.GeneratorBasedBuilder):
                 # These are the features of your dataset like images, labels ...
                 'image': tfds.features.Image(shape=(400, 640, 3)),
                 'segmentation': tfds.features.Tensor(shape=(400, 640, 1), dtype=tf.uint8),
+                'annotation': tfds.features.FeaturesDict({
+                    "categories": tfds.features.FeaturesDict({
+                        "HandCategoriesId": tf.int32,
+                        "GestureCategoriesId": tf.int32,
+                        "AngleCategoriesId": tf.int32,
+                    }),
+                    "accessories": {
+                        "left_hand_accessories": tf.bool,
+                        "right_hand_accessories": tf.bool,
+                        "left_arm_accessories": tf.bool,
+                        "right_arm_accessories": tf.bool
+                    },
+                    "user": tf.string,
+                    "sleeve": tf.string
+                })
             }),
 
             # homepage='https://dataset-homepage/',
@@ -178,7 +190,22 @@ class Builder(tfds.core.GeneratorBasedBuilder):
                             mask = np.expand_dims(mask, axis=-1)
                             example = {
                                 'image': image_path,
-                                'segmentation': mask
+                                'segmentation': mask,
+                                'annotation':{
+                                    'categories': {
+                                        "HandCategoriesId": anno['categories'][0]['HandCategoriesId'],
+                                        "GestureCategoriesId": anno['categories'][0]['GestureCategoriesId'],
+                                        "AngleCategoriesId": anno['categories'][0]['AngleCategoriesId']
+                                    },
+                                    "accessories": {
+                                        "left_hand_accessories": anno['accessories']['left_hand_accessories'],
+                                        "right_hand_accessories": anno['accessories']['right_hand_accessories'],
+                                        "left_arm_accessories": anno['accessories']['left_arm_accessories'],
+                                        "right_arm_accessories": anno['accessories']['right_arm_accessories']
+                                    },
+                                    "user": anno["user"],
+                                    "sleeve": anno["sleeve"]
+                                }
                             }
                             yield image_id, example
                 else:
