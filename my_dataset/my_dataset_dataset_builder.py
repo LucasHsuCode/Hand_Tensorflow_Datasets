@@ -2,6 +2,8 @@
 
 import tensorflow_datasets as tfds
 import tensorflow as tf
+import numpy as np
+import json
 import os
 
 
@@ -26,9 +28,11 @@ class Builder(tfds.core.GeneratorBasedBuilder):
 
     class Builder(tfds.core.GeneratorBasedBuilder):
         """
-          自定義的資料集。
-          該資料集包含手部圖片、遮罩和標註資料，從遠端伺服器下載後使用。
-      """
+        Custom dataset containing hand images, masks, and annotations downloaded from a remote server.
+
+        The dataset contains images, masks, and annotations for various hand poses and gestures, and is intended for use in machine learning tasks such as hand pose estimation and gesture recognition.
+
+        """
 
         VERSION = tfds.core.Version('1.0.0')
         RELEASE_NOTES = {
@@ -36,9 +40,14 @@ class Builder(tfds.core.GeneratorBasedBuilder):
         }
 
         def _info(self) -> tfds.core.DatasetInfo:
-            """Returns the dataset metadata."""
-            # TODO(my_dataset): Specifies the tfds.core.DatasetInfo object
+            """
+            Returns the dataset metadata.
 
+            Returns:
+                A `tfds.core.DatasetInfo` object describing the dataset.
+            """
+
+            # Specifies the tfds.core.DatasetInfo object
             return self.dataset_info_from_configs(
                 features=tfds.features.FeaturesDict({
                     # These are the features of your dataset like images, labels ...
@@ -47,6 +56,7 @@ class Builder(tfds.core.GeneratorBasedBuilder):
                 }),
 
                 # homepage='https://dataset-homepage/',
+
                 citation="""\
                         @article{my_dataset,
                           title={CRI CoreHand Datasets},
@@ -117,11 +127,74 @@ class Builder(tfds.core.GeneratorBasedBuilder):
             )
         ]
 
-    def _generate_examples(self, path):
-        """Yields examples."""
-        # TODO(my_dataset): Yields (key, example) tuples from the dataset
-        for f in path.glob('*.jpeg'):
-            yield 'key', {
-                'image': f,
-                'label': 'yes',
-            }
+    def _generate_examples(self, img_paths: List[str], mask_paths: List[str], anno_paths: List[str]):
+        """
+        Generates examples for the dataset.
+
+        Args:
+            img_paths (List[str]): A list of file paths for the images.
+            mask_paths (List[str]): A list of file paths for the segmentation masks.
+            anno_paths (List[str]): A list of file paths for the annotations.
+
+        Yields:
+            Tuple[str, Dict[str, Union[str, np.ndarray]]]: A tuple containing the unique identifier for the example and a dictionary containing the image and segmentation mask data.
+        """
+
+        # Create lists for annotation file paths
+        _anno_paths = [path for path in anno_paths if os.path.basename(path).startswith('annotation')]
+        img_anno_paths = [path for path in anno_paths if os.path.basename(path).startswith('images')]
+        mask_anno_paths = [path for path in anno_paths if os.path.basename(path).startswith('mask')]
+
+        # Create a mapping from image IDs to file paths
+        image_id_to_path = {}
+        for image_path in img_anno_paths:
+            with open(image_path, 'r') as f:
+                image_data = json.load(f)
+            for image in image_data['images']:
+                image_id = image['id']
+                image_path = image['image_path']
+                image_id_to_path[image_id] = image_path
+
+        # Create a mapping from mask IDs to file paths
+        mask_id_to_path = {}
+        for mask_path in mask_anno_paths:
+            with open(mask_path, 'r') as f:
+                mask_data = json.load(f)
+            for mask in mask_data['mask']:
+                mask_id = mask['id']
+                mask_path = mask['mask_path']
+                mask_id_to_path[mask_id] = mask_path
+
+        # Traverse all annotation file paths
+        for anno_path in _anno_paths:
+            # Read JSON file
+            with open(anno_path, 'r') as f:
+                anno_data = json.load(f)
+
+            # Traverse all annotations
+            for anno in anno_data['annotations']:
+                image_id = anno['image_id']
+                mask_id = anno['mask_id']
+
+                # Only yield examples if both the image and mask exist
+                if image_id in image_id_to_path and mask_id in mask_id_to_path:
+                    image_path = image_id_to_path[image_id]
+                    mask_path = mask_id_to_path[mask_id]
+
+                    # Map the image path and mask path to their respective lists
+                    for path in img_paths:
+                        if image_path in path:
+                            image_path = path
+                    for path in mask_paths:
+                        if mask_path in path:
+                            # Load the mask and expand the dimensions to match the shape of the image
+                            mask = np.load(path)
+                            mask = mask.astype(np.uint8)
+                            mask = np.expand_dims(mask, axis=-1)
+                            example = {
+                                'image': image_path,
+                                'segmentation': mask
+                            }
+                            yield image_id, example
+                else:
+                    continue
