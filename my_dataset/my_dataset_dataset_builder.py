@@ -2,72 +2,56 @@
 
 import tensorflow_datasets as tfds
 import tensorflow as tf
+from typing import List
 import numpy as np
+import argparse
 import json
 import os
 
 
 class Builder(tfds.core.GeneratorBasedBuilder):
-    """DatasetBuilder for my_dataset dataset."""
+    """
+    Custom dataset containing hand images, masks, and annotations downloaded from a remote server.
+
+    The dataset contains images, masks, and annotations for various hand poses and gestures, and is intended for use in
+    machine learning tasks such as hand pose estimation and gesture recognition.
+
+    """
 
     VERSION = tfds.core.Version('1.0.0')
     RELEASE_NOTES = {
         '1.0.0': 'Initial release.',
     }
 
-    """my_dataset dataset."""
-    import json
-
-    import tensorflow_datasets as tfds
-    import tensorflow as tf
-    import os
-    import cv2
-    import numpy as np
-
-    from typing import List
-
-    class Builder(tfds.core.GeneratorBasedBuilder):
+    def _info(self) -> tfds.core.DatasetInfo:
         """
-        Custom dataset containing hand images, masks, and annotations downloaded from a remote server.
+        Returns the dataset metadata.
 
-        The dataset contains images, masks, and annotations for various hand poses and gestures, and is intended for use in machine learning tasks such as hand pose estimation and gesture recognition.
-
+        Returns:
+            A `tfds.core.DatasetInfo` object describing the dataset.
         """
 
-        VERSION = tfds.core.Version('1.0.0')
-        RELEASE_NOTES = {
-            '1.0.0': 'Initial release.',
-        }
+        # Specifies the tfds.core.DatasetInfo object
+        return self.dataset_info_from_configs(
+            features=tfds.features.FeaturesDict({
+                # These are the features of your dataset like images, labels ...
+                'image': tfds.features.Image(shape=(400, 640, 3)),
+                'segmentation': tfds.features.Tensor(shape=(400, 640, 1), dtype=tf.uint8),
+            }),
 
-        def _info(self) -> tfds.core.DatasetInfo:
-            """
-            Returns the dataset metadata.
+            # homepage='https://dataset-homepage/',
 
-            Returns:
-                A `tfds.core.DatasetInfo` object describing the dataset.
-            """
+            citation="""\
+                    @article{my_dataset,
+                      title={CRI CoreHand Datasets},
+                      author={Lucas, Frank},
+                      journal={Journal of My Dataset},
+                      year={2023},
+                    }
+                  """,
+        )
 
-            # Specifies the tfds.core.DatasetInfo object
-            return self.dataset_info_from_configs(
-                features=tfds.features.FeaturesDict({
-                    # These are the features of your dataset like images, labels ...
-                    'image': tfds.features.Image(shape=(400, 640, 3)),
-                    'segmentation': tfds.features.Tensor(shape=(400, 640, 1), dtype=tf.uint8),
-                }),
-
-                # homepage='https://dataset-homepage/',
-
-                citation="""\
-                        @article{my_dataset,
-                          title={CRI CoreHand Datasets},
-                          author={Lucas, Frank},
-                          journal={Journal of My Dataset},
-                          year={2023},
-                        }
-                      """,
-            )
-
-    def _split_generators(self, dl_manager: tfds.download.DownloadManager) -> List[tfds.core.SplitGenerator]:
+    def _split_generators(self, dl_manager: tfds.download.DownloadManager, **kwargs) -> List[tfds.core.SplitGenerator]:
 
         """Splits the dataset into training and validation sets.
 
@@ -79,9 +63,9 @@ class Builder(tfds.core.GeneratorBasedBuilder):
         """
 
         # Set the remote server name, username, password, and file paths
-        server_name = '192.168.71.209'
-        user_name = 'LucasA220619'
-        password = 'Vm35p4ru8 ~'
+        server_name = os.environ['TFDS_SERVER_NAME']
+        user_name = os.environ['TFDS_USER_NAME']
+        password = os.environ['TFDS_PASSWORD']
 
         remote_path = '/CT-425/Lucas/hand/images.zip'
         remote_mask_path = '/CT-425/Lucas/hand/mask.zip'
@@ -137,7 +121,8 @@ class Builder(tfds.core.GeneratorBasedBuilder):
             anno_paths (List[str]): A list of file paths for the annotations.
 
         Yields:
-            Tuple[str, Dict[str, Union[str, np.ndarray]]]: A tuple containing the unique identifier for the example and a dictionary containing the image and segmentation mask data.
+            Tuple[str, Dict[str, Union[str, np.ndarray]]]: A tuple containing the unique identifier for the example and
+            a dictionary containing the image and segmentation mask data.
         """
 
         # Create lists for annotation file paths

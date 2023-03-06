@@ -1,3 +1,3 @@
-# TODO(my_dataset): If your dataset downloads files, then the checksums
-# will be automatically added here when running
-# `tfds build --register_checksums`.
+ftp://LucasA220619:Vm35p4ru8 ~@192.168.71.209/CT-425/Lucas/hand/annotation.zip	1371291	90a7f87930c03ffc38f1f8732a7331e265175df9404a556fff902d98b91194b9	annotation.zip
+ftp://LucasA220619:Vm35p4ru8 ~@192.168.71.209/CT-425/Lucas/hand/images.zip	366870821	35444c64db8d87a433835138ea0085909f8051bf5d083488c136dc28823dd3c4	images.zip
+ftp://LucasA220619:Vm35p4ru8 ~@192.168.71.209/CT-425/Lucas/hand/mask.zip	5468761	df8a0d95a250056a39499fd0887baa236678cf27ea44c1a14aa011b02f3fdf10	mask.zip
